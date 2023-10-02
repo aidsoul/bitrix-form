@@ -1,0 +1,20 @@
+{
+    "name": "aidsoul/bitrix-form",
+    "type": "library",
+    "description": "Bitrix Forms",
+    "homepage": "https://github.com/aidsoul/bitrix-form",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "AidSoul\\Bitrix\\Form\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "AidSoul",
+            "email": "work-aidsoul@outlook.com",
+            "role": "developer"
+        }
+    ],
+    "require": {}
+}
