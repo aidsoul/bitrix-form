@@ -1,26 +1,37 @@
 <?php
 
-namespace AidSoul\Bitrix\Form;
+namespace AidSoul\Forms;
 
 use Bitrix\Main\Error;
 use Bitrix\Main\ErrorCollection;
 
 /**
- * Класс для работы с данными  поля формы
+ * Класс для работы с данными формы
+ * TODO Каждая форма новый класс под общим интерфейсом
  * Запуск через BX.ajax.runComponentAction
  * ajaxAction
+ *
+ * ToDo Обработку полей формы нужно вынести в отдельные классы
  *
  * @author work-aidsoul@outlook.com
  */
 abstract class Form
 {
     private ErrorCollection $errors;
+
     /**
      * Массив полей
      * необходим для работы с ИБ
      * @var array
      */
     protected array $cleanFields = [];
+
+    /**
+     * Неочищенные поля формы
+     *
+     * @var array
+     */
+    protected array $dirtyFields = [];
 
     /**
      *  'fio' => [
@@ -38,6 +49,11 @@ abstract class Form
      * @var array
      */
     protected array $mail = [];
+    /**
+     * Почтовые вложения
+     *
+     * @var array
+     */
     protected array $mailAttachments = [];
 
     /**
@@ -60,7 +76,16 @@ abstract class Form
      */
     protected array $customData = [];
     protected array $reply = [];
+    
+    /**
+     * Массив доступен в шаблоне
+     * $arResult['DATA']
+     *
+     * @var array
+     */
     protected array $formData = [];
+
+
 
     public function __construct()
     {
@@ -120,9 +145,11 @@ abstract class Form
                                 'Поле "' . $this->formFields[$k]['name'] . '" обязательное для заполнения'
                             );
                         }
-                        $this->$k(strip_tags(htmlspecialcharsbx($param)));
+                        if ($param) {
+                            $this->$k(strip_tags(htmlspecialcharsbx($param)));
+                        }
                     } else {
-                        $this->setError('field', 'error');
+                        $this->dirtyFields[$k] = $param;
                     }
                 }
             }
@@ -200,6 +227,17 @@ abstract class Form
     }
 
     /**
+     * pageUrl
+     *
+     * @param string $pageUrl
+     * @return void
+     */
+    private function pageUrl(string $pageUrl)
+    {
+        $this->cleanFields['PAGE_URL'] = $pageUrl;
+    }
+
+    /**
      * Отправить сообщение на почту
      *
      * @return void
@@ -228,7 +266,7 @@ abstract class Form
             return [
                 'modal' => $this->modalArr,
                 'customData' => $this->customData,
-                'fields' => $this->cleanFields
+                // 'fields' => $this->cleanFields
             ];
     }
 }

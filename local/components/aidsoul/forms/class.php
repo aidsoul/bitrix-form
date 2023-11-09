@@ -3,11 +3,10 @@
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
-
+use AidSoul\Forms\Form;
+use AidSoul\Forms\Unknown;
 use Bitrix\Main\Errorable;
-use Bitrix\Main\Page\Asset;
 use Bitrix\Main\Application;
-use AidSoul\Bitrix\Form\Unknown;
 use Bitrix\Main\Engine\ActionFilter;
 use Bitrix\Main\ErrorableImplementation;
 use Bitrix\Main\Engine\Contract\Controllerable;
@@ -28,7 +27,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     public const IBLOCK_ID = 0;
 
     /**
-     * Подключение нужной формы
+     * Классы для работы с формами
      *
      * @param string $form
      * @return Form
@@ -36,6 +35,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     private function getFormClass(string $form): Form
     {
         return match ($form) {
+            // form init
             default => new Unknown()
         };
     }
@@ -69,14 +69,14 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
         $form = $this->getFormClass($params['form']);
         unset($params['form']);
         if ($files = $request->getFileList()->toArray()) {
-            $params =  array_merge($params, $files);
+            $params = array_merge($params, $files);
         }
-
         $form->validation($params);
-        $form->prepareAction(); //создание заказа
+        $form->prepareAction();
         $this->errorCollection = $form->getErrors();
         if (empty($this->getErrors())) {
             $form->successAction();
+            $form->showSuccessErrors();
             $form->sendMail();
             return $form->getSuccessResponse();
         }
@@ -85,7 +85,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     public function executeComponent()
     {
 
-        Asset::getInstance()->addJs($this->getPath() . '/forms.js');
+        // Asset::getInstance()->addJs($this->getPath() . '/forms.js');
         /**
          * Формирования массива для формы
          */
@@ -95,7 +95,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
         $this->arResult['CLASS'] = $this->arParams['CLASS'];
         // Авторизован ли пользователь
         // if ($this->arParams['IS_USER_AUTHORIZED'] === true) {
-            // checkUserAndForward('/account/');
+        // checkUserAndForward('/account/');
         // }
         if ($this->startResultCache()) {
             $this->includeComponentTemplate();
