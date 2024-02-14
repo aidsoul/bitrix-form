@@ -3,6 +3,6 @@ $arComponentDescription = [
     'NAME' => 'Формы',
     'DESCRIPTION' => '',
     'PATH' => [
-        'ID' => 'custom',
+        'ID' => 'aidsoul',
     ]
 ];
