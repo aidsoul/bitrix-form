@@ -3,13 +3,14 @@
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
-use AidSoul\Forms\Form;
-use AidSoul\Forms\Unknown;
-use Bitrix\Main\Errorable;
+
 use Bitrix\Main\Application;
 use Bitrix\Main\Engine\ActionFilter;
-use Bitrix\Main\ErrorableImplementation;
 use Bitrix\Main\Engine\Contract\Controllerable;
+use Bitrix\Main\Errorable;
+use Bitrix\Main\ErrorableImplementation;
+use AidSoul\Forms\Form;
+use AidSoul\Forms\Unknown;
 
 /**
  * Forms
@@ -20,11 +21,32 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     use ErrorableImplementation;
 
     private string $formCode = '';
+    private string $formName = '';
+    private array $configureArr;
+    private Form $form;
 
-    /**
-     * SECTION ID
-     */
-    public const IBLOCK_ID = 0;
+    public function onPrepareComponentParams($arParams)
+    {
+        $arParams['CACHE_TIME'] = isset($arParams['CACHE_TIME']) ? $arParams['CACHE_TIME'] : 86400;
+        $form = $this->request->getPost('form');
+        if ($form) {
+            $this->form = $this->getFormClass($form);
+            if ($preFilters = $this->form->getPreFilters()) {
+                $this->configureArr['prefilters'] = $preFilters;
+            }
+            if ($postFilters = $this->form->getPostFilters()) {
+                $this->configureArr['postfilters'] = $preFilters;
+            }
+        }
+        return $arParams;
+    }
+
+    public function configureActions(): array
+    {
+        return [
+            'ajax' => $this->configureArr
+        ];
+    }
 
     /**
      * Классы для работы с формами
@@ -35,68 +57,63 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     private function getFormClass(string $form): Form
     {
         return match ($form) {
-            // form init
             default => new Unknown()
         };
     }
 
-    public function onPrepareComponentParams($arParams)
+    private function getReplyAction(): array
     {
-        $arParams['CACHE_TIME'] = isset($arParams['CACHE_TIME']) ? $arParams['CACHE_TIME'] : 86400;
-        return $arParams;
+        /**
+         * @var $request \Bitrix\Main\HttpRequest
+         */
+        $form = &$this->form;
+        $request = $this->request;
+        $params = [];
+        switch ($form->getQueryType()) {
+            case 'get':
+                $params = $request->getQueryList()->toArray();
+                break;
+            case 'post':
+                $params = $request->getPostList()->toArray();
+                if ($files = $request->getFileList()->toArray()) {
+                    $params = array_merge($params, $files);
+                }
+                break;
+        }
+        if ($form === 0) {
+            $form = $this->formName;
+        }
+        unset($params['form']);
+        $form
+        ->setParams($params)
+        ->validation()
+        ->action();
+        $this->errorCollection = $form->getErrorCollection();
+        return $form->getReplyData();
     }
 
-    public function configureActions(): array
+    public function setFormName(string $name): void
     {
-        return [
-            'ajax' => [
-                'prefilters' => [
-                    new ActionFilter\HttpMethod([ActionFilter\HttpMethod::METHOD_POST]),
-                    new ActionFilter\Csrf()
-                ],
-                'postfilters' => []
-            ],
-        ];
+        $this->formName = $name;
     }
+
 
     /**
      * Работа с ajax
      */
     public function ajaxAction()
     {
-        $request = Application::getInstance()->getContext()->getRequest();
-        $params = $request->getPostList()->toArray();
-        $form = $this->getFormClass($params['form']);
-        unset($params['form']);
-        if ($files = $request->getFileList()->toArray()) {
-            $params = array_merge($params, $files);
-        }
-        $form->validation($params);
-        $form->prepareAction();
-        $this->errorCollection = $form->getErrors();
-        if (empty($this->getErrors())) {
-            $form->successAction();
-            $form->showSuccessErrors();
-            $form->sendMail();
-            return $form->getSuccessResponse();
-        }
+        return $this->getReplyAction();
     }
 
     public function executeComponent()
     {
 
-        // Asset::getInstance()->addJs($this->getPath() . '/forms.js');
-        /**
-         * Формирования массива для формы
-         */
         $form = $this->getFormClass($this->getTemplateName());
-        $form->setFormData($this->arParams['FORM'] ?? []);
-        $this->arResult['DATA'] = $form->formDataAction();
-        $this->arResult['CLASS'] = $this->arParams['CLASS'];
-        // Авторизован ли пользователь
-        // if ($this->arParams['IS_USER_AUTHORIZED'] === true) {
-        // checkUserAndForward('/account/');
-        // }
+        $form->setArParams($this->arParams['FORM'] ?? []);
+        $this->arResult = $form->getArResult();
+        $this->arResult['CURRENT_PARAMS'] = $form->getCurrentParams();
+
         if ($this->startResultCache()) {
             $this->includeComponentTemplate();
         }

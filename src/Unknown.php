@@ -1,12 +1,20 @@
 <?php
 
 namespace AidSoul\Bitrix\Form;
-
+/**
+ * Unknown class
+ *
+ * @author AidSoul <work-aidsoul@outlook.com>
+ */
 class Unknown extends Form
 {
-    public function __construct()
+    protected function postFilters(): array{
+        
+    }
+    public function successAction(): array
     {
-        parent::__construct();
         $this->setError('form', 'Form error');
+
+        return [];
     }
 }
