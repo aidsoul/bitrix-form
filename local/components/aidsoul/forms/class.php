@@ -35,7 +35,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
                 $this->configureArr['prefilters'] = $preFilters;
             }
             if ($postFilters = $this->form->getPostFilters()) {
-                $this->configureArr['postfilters'] = $preFilters;
+                $this->configureArr['postfilters'] = $postFilters;
             }
         }
         return $arParams;
