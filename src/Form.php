@@ -13,7 +13,6 @@ use Bitrix\Main\ErrorCollection;
  * @author work-aidsoul@outlook.com
  * @license MIT
  *
- * It is taken as a basis https://github.com/aidsoul/bitrix-form
  */
 abstract class Form
 {
@@ -42,15 +41,27 @@ abstract class Form
     protected array $ignoreFieldArr = [];
 
     /**
-     * Массив полей после очистки
+     * Массив параметров после очистки
      * @var array
      */
     protected array $cleanParams = [];
+    /**
+     * Массив неочищенных параметров
+     *
+     * @var array
+     */
+    protected array $dirtyParams = [];
 
     private array $arResult = [];
 
     protected array $arParams = [];
 
+    /**
+     * Тип запроса
+     * get|post|all
+     *
+     * @var string
+     */
     protected string $queryType = 'post';
 
     /**
@@ -230,27 +241,32 @@ abstract class Form
     {
         $value = strip_tags(htmlspecialcharsbx($value));
         $currentParams = &$this->currentParams[$param];
-        if (!in_array($param, $this->ignoreFieldArr)) {
-            if (preg_match("/[<>\/]+/ium", $value)) {
-                $this->setError(
-                    'invalidCharacters',
-                    'В поле "' . $currentParams['name'] . '" недопустимые символы!'
-                );
-            } else {
-                $this->strLengthValidation($value, $currentParams['name'], $currentParams['min'], $currentParams['max']);
-                $this->regularValidation($currentParams['regular'] ?? [], $value, $currentParams['name']);
-                if ($this->errorCollection->isEmpty()) {
-                    $method = $param;
-                    if ($currentParams['validateMethod']) {
-                        $method = $currentParams['validateMethod'];
+        $currentParamsName = $currentParams['name'] ?? '';
+        if ($currentParams) {
+            if (!in_array($param, $this->ignoreFieldArr)) {
+                if (preg_match("/[<>\/]+/ium", $value) && !$currentParams['noBaseRegular']) {
+                    $this->setError(
+                        'invalidCharacters',
+                        'В поле "' . $currentParamsName . '" недопустимые символы!'
+                    );
+                } else {
+                    $this->strLengthValidation($value, $currentParamsName, $currentParams['min'], $currentParams['max']);
+                    $this->regularValidation($currentParams['regular'] ?? [], $value, $currentParamsName);
+                    if ($this->errorCollection->isEmpty()) {
+                        $method = $param;
+                        if ($currentParams['validateMethod']) {
+                            $method = $currentParams['validateMethod'];
+                        }
+                        $newValue = $value;
+                        if (method_exists($this, $method)) {
+                            $newValue = $this->$method($value);
+                        }
+                        $this->cleanParams[$param] = $newValue;
                     }
-                    $newValue = $value;
-                    if (method_exists($this, $method)) {
-                        $newValue = $this->$method($value);
-                    }
-                    $this->cleanParams[$param] = $newValue;
                 }
             }
+        } else {
+            $this->dirtyParams[$param] = $value;
         }
     }
 

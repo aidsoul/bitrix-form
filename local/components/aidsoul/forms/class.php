@@ -35,7 +35,7 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
                 $this->configureArr['prefilters'] = $preFilters;
             }
             if ($postFilters = $this->form->getPostFilters()) {
-                $this->configureArr['postfilters'] = $preFilters;
+                $this->configureArr['postfilters'] = $postFilters;
             }
         }
         return $arParams;
@@ -79,6 +79,13 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
                     $params = array_merge($params, $files);
                 }
                 break;
+            case 'all':
+                $params = array_merge(
+                    $request->getQueryList()->toArray(),
+                    $request->getPostList()->toArray(),
+                    $request->getFileList()->toArray()
+                );
+                break;
         }
         if ($form === 0) {
             $form = $this->formName;
@@ -91,7 +98,6 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
         $this->errorCollection = $form->getErrorCollection();
         return $form->getReplyData();
     }
-
     public function setFormName(string $name): void
     {
         $this->formName = $name;
