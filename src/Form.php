@@ -13,7 +13,6 @@ use Bitrix\Main\ErrorCollection;
  * @author work-aidsoul@outlook.com
  * @license MIT
  *
- * It is taken as a basis https://github.com/aidsoul/bitrix-form
  */
 abstract class Form
 {
@@ -245,7 +244,7 @@ abstract class Form
         $currentParamsName = $currentParams['name'] ?? '';
         if ($currentParams) {
             if (!in_array($param, $this->ignoreFieldArr)) {
-                if (preg_match("/[<>\/]+/ium", $value)) {
+                if (preg_match("/[<>\/]+/ium", $value) && !$currentParams['noBaseRegular']) {
                     $this->setError(
                         'invalidCharacters',
                         'В поле "' . $currentParamsName . '" недопустимые символы!'
