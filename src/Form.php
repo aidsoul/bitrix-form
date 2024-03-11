@@ -202,10 +202,10 @@ abstract class Form
     {
         $symbolsValue = mb_strlen($str, "UTF-8");
         if ($min && $symbolsValue < $min) {
-            $this->setError('minCharacters', 'Минимальное количество символов для поля "' . $param . '" = ' . $min);
+            $this->setError($param, 'Минимальное количество символов = ' . $min);
         }
         if ($max && $symbolsValue > $max) {
-            $this->setError('maxCharacters', 'Максимальное количество символов для поля "' . $param . '" = ' . $max);
+            $this->setError($param, 'Максимальное количество символов = ' . $max);
         }
     }
 
@@ -223,9 +223,9 @@ abstract class Form
             if (!preg_match($regular['rule'], $value)) {
                 $message = $regular['message'];
                 if (!$message) {
-                    $message = 'Поле "' . $param . '" не соответствует шаблону';
+                    $message = 'Не соответствует шаблону';
                 }
-                $this->setError($k, $message);
+                $this->setError($param, $message);
             }
         }
     }
@@ -246,12 +246,14 @@ abstract class Form
             if (!in_array($param, $this->ignoreFieldArr)) {
                 if (preg_match("/[<>\/]+/ium", $value) && !$currentParams['noBaseRegular']) {
                     $this->setError(
-                        'invalidCharacters',
+                        $param,
                         'В поле "' . $currentParamsName . '" недопустимые символы!'
                     );
                 } else {
-                    $this->strLengthValidation($value, $currentParamsName, $currentParams['min'], $currentParams['max']);
-                    $this->regularValidation($currentParams['regular'] ?? [], $value, $currentParamsName);
+                    $this->strLengthValidation($value, $param, $currentParams['min'], $currentParams['max'], $param);
+                    if($currentParams['regular']){
+                        $this->regularValidation($currentParams['regular'], $value, $param);
+                    }
                     if ($this->errorCollection->isEmpty()) {
                         $method = $param;
                         if ($currentParams['validateMethod']) {
@@ -283,15 +285,6 @@ abstract class Form
         $currentParam = &$this->currentParams[$param]['file'] ?? false;
         $newValue = [];
         if ($currentParam) {
-            $formatBytes = function ($bytes) {
-                if ($bytes > 0) {
-                    $i = floor(log($bytes) / log(1024));
-                    $sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-                    return sprintf('%.02F', round($bytes / pow(1024, $i), 1)) * 1 . ' ' . @$sizes[$i];
-                } else {
-                    return 0;
-                }
-            };
             for ($i = 0; $i < $count; $i++) {
                 $tmpName = $value['tmp_name'][$i] ?? false;
                 $fileName = $value['name'][$i];
@@ -301,14 +294,23 @@ abstract class Form
                     continue;
                 }
                 if ($maxSize = $currentParam['maxSize']) {
+                    $formatBytes = function ($bytes) {
+                        if ($bytes > 0) {
+                            $i = floor(log($bytes) / log(1024));
+                            $sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                            return sprintf('%.02F', round($bytes / pow(1024, $i), 1)) * 1 . ' ' . @$sizes[$i];
+                        } else {
+                            return 0;
+                        }
+                    };
                     if ($fileSize > $maxSize) {
-                        $this->setError('fileMaxSize', 'Максимальный размер файла "' . $value['name'][$i] . '": ' . $formatBytes($maxSize));
+                        $this->setError($param, 'Максимальный размер файла "' . $value['name'][$i] . '": ' . $formatBytes($maxSize));
                         continue;
                     }
                 }
                 if ($fileTypes = $currentParam['fileTypes']) {
                     if (!in_array($fileType, $fileTypes)) {
-                        $this->setError('fileType', 'Недопустимый тип файла "' . $fileName . '" ');
+                        $this->setError($param, 'Недопустимый тип файла "' . $fileName . '" ');
                         continue;
                     }
                 }
@@ -347,14 +349,14 @@ abstract class Form
             $currentParamsErrors = false;
             foreach ($this->currentParams as $k => $v) {
                 if ($v['required'] === true) {
-                    if (empty($this->params[$k])) {
-                        $erMessage = $k;
-                        if ($v['name']) {
-                            $erMessage = $v['name'];
-                        }
+                    $param = $this->params[$k];
+                    if (is_array($param)) {
+                        $param = $param['name'][0] ?? false;
+                    }
+                    if (!$param) {
                         $this->setError(
                             $k,
-                            'Обязательное поле "' . $erMessage . '"'
+                            'Обязательное поле'
                         );
                         $currentParamsErrors = true;
                     }
