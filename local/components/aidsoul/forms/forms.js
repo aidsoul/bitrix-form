@@ -1,48 +1,118 @@
-let formErrorModal = {
-    'name': 'Ошибки полей'
-};
 
-function showFormError(errors,) {
-    let message = '';
-    if (errors) {
-        let count = errors.length;
-        for (i = 0; i < count; i++) {
-            message += errors[i]['message'] + '<br>';
+/**
+ * @author AidSoul <work-aidsoul@outlook.com>
+ */
+
+
+class ComponentAjax {
+
+    /**
+     * 
+     * @param {*} component 
+     * @param {*} mode 
+     * @param {*} method 
+     * @param {*} params 
+     */
+    constructor(component, mode) {
+        this.component = component;
+        this.mode = mode;
+        this.method = '';
+        this.params = '';
+        this.successFunction = function (response) { },
+        this.errorFunction = function (error = { code, message, customData }) {
+            console.log(error);
+        },
+        this.beforeErrorFunction = function () { }
+    }
+
+    /**
+     * 
+     * @param {*} params 
+     */
+    setParams(params) {
+        this.params = params;
+    }
+
+    /**
+     * ajax | class
+     * @param {*} mode 
+     */
+    setMode(mode) {
+        this.mode = mode;
+    }
+
+    successAction(successFunction = function (response) { }) {
+        this.successFunction = successFunction;
+    }
+
+    errorsAction(response) {
+        let errors = response.errors;
+        if (errors) {
+            let count = errors.length;
+            let i = 0;
+            for (; i < count; i++) {
+                this.errorFunction(errors[i]);
+            }
         }
     }
-    addModal(
-        modalClasses.request,
-        addModalRequestContent(formErrorModal.name, message),
-    );
-}
 
-function sendFormAjax(formItem, fromName, successFunction, beforeSuccessFunction = function (currentParams) {
-}, formReset = true) {
-    let currentParams = new FormData(formItem);
-    if (currentParams) {
-        currentParams.append('form', fromName);
-        currentParams.append('pageTitle', $('title').text());
-        currentParams.append('pageUrl', url.href);
-        beforeSuccessFunction(currentParams);
-        let request = BX.ajax.runComponentAction('custom:forms', 'ajax', {
-            mode: 'class',
-            data: currentParams
+    /**
+     * execute
+     * 
+     */
+    execute() {
+        let currentClass = this;
+        let request = BX.ajax.runComponentAction(this.component, this.method, {
+            mode: this.mode,
+            data: this.params
         });
         request.then(function (response) {
-            if (response.status === 'success') {
-                if (response.data.customData.errors) {
-                    showFormError(errors);
-                } else {
-                    successFunction(response.data);
-                    if (formReset) {
-                        formItem.reset();
-                    }
-                }
-            }
+            currentClass.successFunction(response);
         }, function (response) {
-            showFormError(response.errors);
-        })
+            currentClass.beforeErrorFunction();
+            currentClass.errorsAction(response);
+        });
     }
 }
 
-let accountPage = '/account/';
+class FormComponentAjax extends ComponentAjax {
+    constructor() {
+        super('custom:forms', 'class');
+        this.method = 'ajax';
+        this.formData = '';
+        this.formItem = '';
+    }
+    /**
+     * 
+     * @param {*} form 
+     * @param {*} formName 
+     */
+    setFormData(formItem, formName) {
+        let formData = new FormData(formItem);
+        if (formData) {
+            formData.append('form', formName);
+            this.params = formData;
+            this.formData = formData;
+            this.formItem = formItem;
+        }
+        console.log(formData.getAll('photos[]'), formData);
+    }
+
+    successClassAction() {
+    }
+
+}
+
+const adsAjax = function () { return new ComponentAjax('ads:ajax', 'ajax') };
+const formAjax = function () { return new FormComponentAjax() };
+
+let adClass = $('div.creating-adv__card');
+
+if (adClass) {
+    adClass.click(function (e) {
+        let dataId = $(this).data('href');
+        if (dataId) {
+            window.location = $(this).data('href');
+        }
+    });
+}

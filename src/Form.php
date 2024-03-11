@@ -250,9 +250,9 @@ abstract class Form
                         'В поле "' . $currentParamsName . '" недопустимые символы!'
                     );
                 } else {
-                    $this->strLengthValidation($value, $param, $currentParams['min'], $currentParams['max'], $param);
-                    if($currentParams['regular']){
-                        $this->regularValidation($currentParams['regular'], $value, $param);
+                    if ($value) {
+                        $this->strLengthValidation($value, $param, $currentParams['min'], $currentParams['max'], $param);
+                        $this->regularValidation($currentParams['regular'] ?? [], $value, $param);
                     }
                     if ($this->errorCollection->isEmpty()) {
                         $method = $param;
@@ -283,6 +283,12 @@ abstract class Form
     {
         $count = count($value['name']);
         $currentParam = &$this->currentParams[$param]['file'] ?? false;
+        if ($maxCount = $currentParam['maxCount']) {
+            if ($count > $maxCount) {
+                $this->setError($param, 'Максимальное количество файлом = ' . $maxCount);
+                return;
+            }
+        }
         $newValue = [];
         if ($currentParam) {
             for ($i = 0; $i < $count; $i++) {
