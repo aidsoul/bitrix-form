@@ -28,15 +28,13 @@ class Forms extends CBitrixComponent implements Controllerable, Errorable
     public function onPrepareComponentParams($arParams)
     {
         $arParams['CACHE_TIME'] = isset($arParams['CACHE_TIME']) ? $arParams['CACHE_TIME'] : 86400;
-        $form = $this->request->getPost('form');
-        if ($form) {
-            $this->form = $this->getFormClass($form);
-            if ($preFilters = $this->form->getPreFilters()) {
-                $this->configureArr['prefilters'] = $preFilters;
-            }
-            if ($postFilters = $this->form->getPostFilters()) {
-                $this->configureArr['postfilters'] = $postFilters;
-            }
+        $form = $this->request->getPost('form') ?? 'no';
+        $this->form = $this->getFormClass($form);
+        if ($preFilters = $this->form->getPreFilters()) {
+            $this->configureArr['prefilters'] = $preFilters;
+        }
+        if ($postFilters = $this->form->getPostFilters()) {
+            $this->configureArr['postfilters'] = $postFilters;
         }
         return $arParams;
     }
