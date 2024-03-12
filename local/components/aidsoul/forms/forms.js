@@ -103,16 +103,5 @@ class FormComponentAjax extends ComponentAjax {
 
 }
 
-const adsAjax = function () { return new ComponentAjax('ads:ajax', 'ajax') };
 const formAjax = function () { return new FormComponentAjax() };
 
-let adClass = $('div.creating-adv__card');
-
-if (adClass) {
-    adClass.click(function (e) {
-        let dataId = $(this).data('href');
-        if (dataId) {
-            window.location = $(this).data('href');
-        }
-    });
-}
