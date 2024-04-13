@@ -19,9 +19,7 @@ class ComponentAjax {
         this.method = '';
         this.params = '';
         this.successFunction = function (response) { },
-        this.errorFunction = function (error = { code, message, customData }) {
-            console.log(error);
-        },
+        this.errorFunction = function (error = { code, message, customData }) {},
         this.beforeErrorFunction = function () { }
     }
 
@@ -82,6 +80,17 @@ class FormComponentAjax extends ComponentAjax {
         this.formData = '';
         this.formItem = '';
     }
+
+    /**
+     * 
+     * @param {*} params 
+     * @param {*} form 
+     */
+    setParams(params, form) {
+        this.params = params;
+        this.params.form = form;
+    }
+
     /**
      * 
      * @param {*} form 
@@ -103,5 +112,4 @@ class FormComponentAjax extends ComponentAjax {
 
 }
 
-const formAjax = function () { return new FormComponentAjax() };
 
