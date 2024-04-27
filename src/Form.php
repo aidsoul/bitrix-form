@@ -285,7 +285,7 @@ abstract class Form
         $currentParam = &$this->currentParams[$param]['file'] ?? false;
         if ($maxCount = $currentParam['maxCount']) {
             if ($count > $maxCount) {
-                $this->setError($param, 'Максимальное количество файлом = ' . $maxCount);
+                $this->setError($param, 'Максимальное количество файлов = ' . $maxCount);
                 return;
             }
         }
