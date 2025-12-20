@@ -1,6 +1,6 @@
 <?php
 
-namespace AidSoul\Forms;
+namespace AidSoul\Bitrix\Form;
 
 use Bitrix\Main\Context;
 use Bitrix\Main\Engine\ActionFilter;
