@@ -9,8 +9,8 @@ use Bitrix\Main\Engine\ActionFilter;
 use Bitrix\Main\Engine\Contract\Controllerable;
 use Bitrix\Main\Errorable;
 use Bitrix\Main\ErrorableImplementation;
-use AidSoul\Forms\Form;
-use AidSoul\Forms\Unknown;
+use AidSoul\Bitrix\Form\Form;
+use AidSoul\Bitrix\Form\Unknown;
 
 /**
  * Forms
