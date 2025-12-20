@@ -9,6 +9,10 @@
             "AidSoul\\Bitrix\\Form\\": "src/"
         }
     },
+    "classmap-authoritative": true,
+    "exclude-from-classmap": [
+      "src/Legacy/"
+    ],
     "authors": [
         {
             "name": "AidSoul",
