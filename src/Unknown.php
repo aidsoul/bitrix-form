@@ -8,9 +8,6 @@ namespace AidSoul\Bitrix\Form;
  */
 class Unknown extends Form
 {
-    protected function postFilters(): array{
-        
-    }
     public function successAction(): array
     {
         $this->setError('form', 'Form error');
