@@ -9,9 +9,6 @@
             "AidSoul\\Bitrix\\Form\\": "src/"
         }
     },
-    "exclude-from-classmap": [
-      "local/"
-    ],
     "authors": [
         {
             "name": "AidSoul",
