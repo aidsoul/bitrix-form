@@ -1,2 +1,2 @@
-# Keep package clean:
+.gitignore
 /local  export-ignore
