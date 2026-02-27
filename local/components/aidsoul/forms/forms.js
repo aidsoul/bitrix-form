@@ -4,6 +4,354 @@
  */
 
 /**
+ * Vanilla JavaScript AJAX class (without BX.ajax)
+ */
+class Ajax {
+    /**
+     * @param {Object} options - AJAX options
+     */
+    constructor(options = {}) {
+        this.url = options.url || '';
+        this.method = options.method || 'POST';
+        this.headers = options.headers || {};
+        this.body = options.body || null;
+        this.dataType = options.dataType || 'json';
+        this.timeout = options.timeout || 30000;
+        this.withCredentials = options.withCredentials || false;
+        
+        // Callbacks
+        this.beforeSend = options.beforeSend || null;
+        this.success = options.success || null;
+        this.error = options.error || null;
+        this.complete = options.complete || null;
+        this.progress = options.progress || null;
+        
+        // Request object for abort
+        this.request = null;
+        this.aborted = false;
+    }
+    
+    /**
+     * Set request URL
+     * @param {string} url - Request URL
+     */
+    setUrl(url) {
+        this.url = url;
+        return this;
+    }
+    
+    /**
+     * Set request method
+     * @param {string} method - HTTP method
+     */
+    setMethod(method) {
+        this.method = method.toUpperCase();
+        return this;
+    }
+    
+    /**
+     * Set request headers
+     * @param {Object} headers - Headers object
+     */
+    setHeaders(headers) {
+        this.headers = { ...this.headers, ...headers };
+        return this;
+    }
+    
+    /**
+     * Set request body
+     * @param {Object|FormData|string} body - Request body
+     */
+    setData(body) {
+        this.body = body;
+        return this;
+    }
+    
+    /**
+     * Set data type
+     * @param {string} type - Data type: 'json', 'text', 'formdata'
+     */
+    setDataType(type) {
+        this.dataType = type;
+        return this;
+    }
+    
+    /**
+     * Set timeout
+     * @param {number} timeout - Timeout in milliseconds
+     */
+    setTimeout(timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+    
+    /**
+     * Set before send callback
+     * @param {Function} callback - Callback function
+     */
+    beforeSend(callback) {
+        this.beforeSend = callback;
+        return this;
+    }
+    
+    /**
+     * Set success callback
+     * @param {Function} callback - Callback function
+     */
+    success(callback) {
+        this.success = callback;
+        return this;
+    }
+    
+    /**
+     * Set error callback
+     * @param {Function} callback - Callback function
+     */
+    error(callback) {
+        this.error = callback;
+        return this;
+    }
+    
+    /**
+     * Set complete callback
+     * @param {Function} callback - Callback function
+     */
+    complete(callback) {
+        this.complete = callback;
+        return this;
+    }
+    
+    /**
+     * Set progress callback
+     * @param {Function} callback - Callback function
+     */
+    progress(callback) {
+        this.progress = callback;
+        return this;
+    }
+    
+    /**
+     * Build URL with query params
+     * @param {Object} params - Query parameters
+     * @returns {string} - URL with query string
+     */
+    buildUrl(params) {
+        if (!params || Object.keys(params).length === 0) {
+            return this.url;
+        }
+        
+        const url = new URL(this.url, window.location.origin);
+        Object.keys(params).forEach(key => {
+            const value = params[key];
+            if (Array.isArray(value)) {
+                value.forEach(v => url.searchParams.append(key + '[]', v));
+            } else {
+                url.searchParams.append(key, value);
+            }
+        });
+        
+        return url.toString();
+    }
+    
+    /**
+     * Prepare headers for fetch
+     * @returns {Headers} - Prepared headers
+     */
+    prepareHeaders() {
+        const headers = new Headers();
+        
+        Object.keys(this.headers).forEach(key => {
+            headers.append(key, this.headers[key]);
+        });
+        
+        // Set default content-type for JSON
+        if (this.dataType === 'json' && !headers.has('Content-Type')) {
+            headers.append('Content-Type', 'application/json');
+        }
+        
+        // Set default content-type for form data
+        if (this.body instanceof FormData && !headers.has('Content-Type')) {
+            // Let browser set Content-Type with boundary for FormData
+        }
+        
+        return headers;
+    }
+    
+    /**
+     * Prepare body for fetch
+     * @returns {string|FormData|null} - Prepared body
+     */
+    prepareBody() {
+        if (this.body instanceof FormData) {
+            return this.body;
+        }
+        
+        if (this.dataType === 'json' && typeof this.body === 'object') {
+            return JSON.stringify(this.body);
+        }
+        
+        return this.body;
+    }
+    
+    /**
+     * Execute the AJAX request
+     */
+    execute() {
+        this.aborted = false;
+        
+        // Call beforeSend
+        if (this.beforeSend) {
+            this.beforeSend(this);
+        }
+        
+        const fetchOptions = {
+            method: this.method,
+            headers: this.prepareHeaders(),
+            credentials: this.withCredentials ? 'include' : 'same-origin'
+        };
+        
+        // Add body for non-GET requests
+        if (this.method !== 'GET' && this.body) {
+            fetchOptions.body = this.prepareBody();
+        }
+        
+        // Use timeout with Promise.race
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                if (!this.aborted) {
+                    reject(new Error('Request timeout'));
+                }
+            }, this.timeout);
+        });
+        
+        const fetchPromise = fetch(this.url, fetchOptions);
+        
+        this.request = Promise.race([fetchPromise, timeoutPromise])
+            .then(response => {
+                if (this.aborted) {
+                    return Promise.reject(new Error('Request aborted'));
+                }
+                
+                // Check response status
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Parse response based on dataType
+                switch (this.dataType) {
+                    case 'json':
+                        return response.json();
+                    case 'text':
+                        return response.text();
+                    case 'formdata':
+                        return response.formData();
+                    default:
+                        return response.json();
+                }
+            })
+            .then(data => {
+                if (this.success) {
+                    this.success(data);
+                }
+                
+                if (this.complete) {
+                    this.complete(data);
+                }
+                
+                return data;
+            })
+            .catch(error => {
+                if (this.aborted) {
+                    return;
+                }
+                
+                if (this.error) {
+                    this.error(error);
+                }
+                
+                if (this.complete) {
+                    this.complete(null, error);
+                }
+                
+                throw error;
+            });
+        
+        return this.request;
+    }
+    
+    /**
+     * Abort the current request
+     */
+    abort() {
+        this.aborted = true;
+        // Note: fetch cannot be directly aborted in all browsers
+        // but we can prevent the handlers from executing
+    }
+    
+    /**
+     * Static helper for GET request
+     * @param {string} url - Request URL
+     * @param {Object} params - Query parameters
+     * @param {Object} options - Additional options
+     */
+    static get(url, params = {}, options = {}) {
+        const fullUrl = new URL(url, window.location.origin).toString();
+        const ajax = new Ajax({
+            url: fullUrl,
+            method: 'GET',
+            ...options
+        });
+        ajax.url = ajax.buildUrl(params);
+        return ajax.execute();
+    }
+    
+    /**
+     * Static helper for POST request
+     * @param {string} url - Request URL
+     * @param {Object} data - Request body
+     * @param {Object} options - Additional options
+     */
+    static post(url, data = {}, options = {}) {
+        return new Ajax({
+            url: url,
+            method: 'POST',
+            body: data,
+            dataType: 'json',
+            ...options
+        }).execute();
+    }
+    
+    /**
+     * Static helper for PUT request
+     * @param {string} url - Request URL
+     * @param {Object} data - Request body
+     * @param {Object} options - Additional options
+     */
+    static put(url, data = {}, options = {}) {
+        return new Ajax({
+            url: url,
+            method: 'PUT',
+            body: data,
+            dataType: 'json',
+            ...options
+        }).execute();
+    }
+    
+    /**
+     * Static helper for DELETE request
+     * @param {string} url - Request URL
+     * @param {Object} options - Additional options
+     */
+    static delete(url, options = {}) {
+        return new Ajax({
+            url: url,
+            method: 'DELETE',
+            ...options
+        }).execute();
+    }
+}
+
+/**
  * Base AJAX Component class for Bitrix
  */
 class ComponentAjax {
@@ -92,7 +440,72 @@ class ComponentAjax {
     }
 
     /**
-     * Execute AJAX request
+     * Get AJAX URL for component action
+     * @returns {string} - AJAX URL
+     */
+    getAjaxUrl() {
+        const path = this.mode === 'class' 
+            ? `/bitrix/components/${this.component}/ajax.php`
+            : `/bitrix/components/${this.component}/exec.php`;
+        
+        return path;
+    }
+
+    /**
+     * Execute AJAX request using vanilla JavaScript (without BX.ajax)
+     */
+    executeVanilla() {
+        let currentClass = this;
+        const ajaxUrl = this.getAjaxUrl();
+        
+        if (this.beforeSendFunction) {
+            this.beforeSendFunction();
+        }
+
+        return new Ajax({
+            url: ajaxUrl,
+            method: 'POST',
+            data: {
+                mode: this.mode,
+                action: this.method,
+                ...this.params
+            },
+            dataType: 'json',
+            beforeSend: () => {
+                // beforeSend already called
+            },
+            success: (response) => {
+                // Check for Bitrix error response
+                if (response.errors && response.errors.length > 0) {
+                    currentClass.errorsAction(response);
+                    if (currentClass.errorFunction) {
+                        currentClass.errorFunction(response.errors[0]);
+                    }
+                } else if (currentClass.successFunction) {
+                    currentClass.successFunction(response.data, response);
+                }
+                
+                if (currentClass.completeFunction) {
+                    currentClass.completeFunction(response);
+                }
+            },
+            error: (error) => {
+                if (currentClass.errorFunction) {
+                    currentClass.errorFunction({
+                        message: error.message || 'Network error',
+                        code: 'NETWORK_ERROR'
+                    });
+                }
+                
+                if (currentClass.completeFunction) {
+                    currentClass.completeFunction(null, error);
+                }
+            }
+        }).execute();
+    }
+
+    /**
+     * Execute AJAX request using BX.ajax (original method)
      */
     execute() {
         let currentClass = this;
@@ -399,4 +812,5 @@ document.addEventListener('DOMContentLoaded', function() {
 if (typeof window !== 'undefined') {
     window.FormComponentAjax = FormComponentAjax;
     window.ComponentAjax = ComponentAjax;
+    window.Ajax = Ajax;
 }
